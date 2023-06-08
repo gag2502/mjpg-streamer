@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<style>
+    /* Styling for the slider button */
+    .slider {
+      position: relative;
+      width: 60px;
+      height: 34px;
+    }
+
+    .slider input[type="checkbox"] {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider .slider-round {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+
+    .slider .slider-round:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    /* Styling for the slider button when it's in the "on" state */
+    .slider input[type="checkbox"]:checked + .slider-round {
+      background-color: #2196F3;
+    }
+
+    .slider input[type="checkbox"]:checked + .slider-round:before {
+      transform: translateX(26px);
+    }
+  </style>
+
+<head>
+
+    <script type="text/javascript">
+
+        /* Copyright (C) 2007 Richard Atterer, richard©atterer.net
+         * This program is free software; you can redistribute it and/or modify it
+         * under the terms of the GNU General Public License, version 2. See the file
+         * COPYING for details.
+         */
+  
+        var imageNr = 0; // Serial number of current image
+        var finished = new Array(); // References to img objects which have finished downloading
+        var paused = false;
+        var previous_time = new Date();
+        var fNi = 0, msAvg = 0, fpsAvg = 0, fcnt = 0, fN = 80, msa = [], wsize = 4;
+  
+        function createImageLayer() {
+          var img = new Image();
+          img.style.position = "absolute";
+          img.style.zIndex = -1;
+          img.onload = imageOnload;
+          img.onclick = imageOnclick;
+          img.width = 512;
+          img.height = 384;
+          img.src = "./?action=snapshot&n=" + (++imageNr);
+          var webcam = document.getElementById("webcam");
+          window.info = document.getElementById('info').firstChild;
+          window.ravgFps = document.getElementById('ravgfps').firstChild;
+          window.ravgMs = document.getElementById('ravgms').firstChild;
+          webcam.insertBefore(img, webcam.firstChild);
+          document.getElementById('fN').firstChild.nodeValue = fN;
+        }
+      
+  
+      function runningAvgs (delta) {
+          // delta is the measured frame period
+          var len;
+          if (fcnt < fN) {
+  
+              fcnt++;
+              // we need to populate the sample array
+              msa.push(delta);
+              // calculate average period so far
+              msAvg += (delta - msAvg) / fcnt;
+              
+          } else {
+              /*
+                  running average (fN samples) according to the formula:
+                  rAvg = rAvg - value_fN_samples_back / fN + newest_value / fN
+              */
+              msAvg += (delta - msa[0])/fN;
+              // drop oldest ms value, msa[0]
+              msa = msa.slice(1);
+              // append newest value, delta
+              msa.push(delta);
+          }
+          // calculate average fps
+          fpsAvg = 1000 / msAvg;
+          /*
+              once every fN frames, check if we need to adjust the averaging window
+              since faster rates seem to need more samples to reach a stable(er) readout
+          */
+          if (++fNi == fN) {
+  
+              fNi = 0;
+              // new window size
+              fN = parseInt(fpsAvg * wsize);
+              len = fcnt - fN;
+              // if our sample array, msa, has extra samples, then trim it to the new size
+              if (len > 0) {
+  
+                  // adjust averaging window (nr of samples)
+                  msa = msa.splice(len);
+                  // avoid populating the sample array again
+                  fcnt = fN;
+              }
+          }
+      }
+  
+        // Two layers are always present (except at the very beginning), to avoid flicker
+        function imageOnload() {
+          this.style.zIndex = imageNr; // Image finished, bring to front!
+          while (1 < finished.length) {
+            var del = finished.shift(); // Delete old image(s) from document
+            del.parentNode.removeChild(del);
+          }
+          finished.push(this);
+          current_time = new Date();
+          delta = current_time.getTime() - previous_time.getTime();
+          fps   = (1000.0 / delta).toFixed(1);
+          runningAvgs(delta);
+          info.nodeValue = delta + " ms (" + fps + " fps)";
+          ravgFps.nodeValue = fpsAvg.toFixed(1);
+          ravgMs.nodeValue = msAvg.toFixed(0);
+          previous_time = current_time;
+          if (!paused) createImageLayer();
+        }
+  
+        function imageOnclick() { // Clicking on the image will pause the stream
+          paused = !paused;
+          if (!paused) createImageLayer();
+        }
+  
+      </script>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>SB Admin 2 - Dashboard</title>
+
+    <!-- Custom fonts for this template-->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link
+        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+        rel="stylesheet">
+
+    <!-- Custom styles for this template-->
+    <link href="css/sb-admin-2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="font-awesome/font-awesome-4.7.0/css/font-awesome.min.css">
+
+</head>
+
+<body id="page-top">
+
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- Sidebar -->
+        <ul class="navbar-nav sidebar sidebar-dark accordion" id="accordionSidebar">
+
+            <!-- Sidebar - Brand -->
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
+                <div class="">
+                    <img src="img/logo.png" alt="Logo" width="210" height="80">
+                </div>
+            </a>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider my-0">
+
+            <!-- Nav Item - Dashboard -->
+            <li class="nav-item active">
+                <a class="nav-link" >
+                    <span style="color: black; font-size: 20px;">Lab Remoto</span></a>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider my-0" style="background-color: black;">
+
+            <li class="nav-item active">
+                <a class="nav-link" href="">
+                    <img src="img/icon.png" alt="Logo" width="20" height="20" style="padding-bottom: 3px;">
+                    <span style="color: black; font-size: 17px; ">CONTADOR</span></a>
+            </li>
+
+            <li class="nav-item active">
+                <a class="nav-link" href="">
+                    <img src="img/icon.png" alt="Logo" width="20" height="20" style="padding-bottom: 3px;">
+                    <span style="color: black; font-size: 17px; ">SHIFT REGISTER</span></a>
+            </li>
+
+         
+
+            
+           
+        </ul>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                <!-- Topbar -->
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                </nav>
+                <!-- End of Topbar -->
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    
+
+                    <!-- Content Row -->
+                    <div class="row">
+
+                     
+
+                     
+
+
+                        <!-- Pending Requests Card Example -->
+                        
+                    </div>
+
+                    <!-- Content Row -->
+
+                    <div class="row">
+
+                        <!-- Area Chart -->
+                        <div class="col-12">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header - Dropdown -->
+                                <div
+                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold" style="color: rgb(147, 145, 145)">Stream Camera Raspbery PI</h6>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body">
+                                    <div class="container">
+                                        <div id="webcam" style="width:512px;height:394px"><noscript><img src="./?action=snapshot" width="512px" height="384px" /></noscript></div>
+                                    </div> 
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Content Column -->
+                        <div class="col-6 mb-4">
+                            <a class="btn btn-success" style="background-color: #006600;" href=""><i class="fa fa-power-off" aria-hidden="true"></i> Pulse</a>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <div class="row">
+                                <div class="col-2 mb-4">
+                                    <label class="slider">
+                                        <input type="checkbox" id="myToggle">
+                                        <span class="slider-round"></span>
+                                    </label>
+                                    <p style="padding-left: 6px;">Enable</p>
+                                </div>
+                                <div class="col-4 mb-4">
+                                    <a class="btn btn-success" style="background-color: white; color: black; border-color: black;" href=""><i class="fa fa-upload" aria-hidden="true"></i> Export</a>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div> 
+
+                    <div class="row">
+                        <!-- Content Column -->
+                        <div class="col-6 mb-4">
+                            <img src="img/pulse.png" width="600" height="400" alt="pulse">
+                        </div>
+                        <div class="col-6 mb-4">
+                            <img src="img/circuito.png" width="600" height="400" alt="pulse">
+                        </div>
+                    </div>         
+
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>Universidade de Brasília - UnB</span>
+                    </div>
+                </div>
+            </footer>
+            <!-- End of Footer -->
+
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Ready to Leave?</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                    <a class="btn btn-primary" href="login.html">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap core JavaScript-->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+    <!-- Custom scripts for all pages-->
+    <script src="js/sb-admin-2.min.js"></script>
+
+    <!-- Page level plugins -->
+    <script src="vendor/chart.js/Chart.min.js"></script>
+
+    <!-- Page level custom scripts -->
+    <script src="js/demo/chart-area-demo.js"></script>
+    <script src="js/demo/chart-pie-demo.js"></script>
+
+</body>
+
+<script>
+    // JavaScript code to handle the toggle functionality
+    var toggle = document.getElementById("myToggle");
+    toggle.addEventListener("change", function() {
+      if (toggle.checked) {
+        console.log("Slider is on");
+        // Perform actions for "on" state
+      } else {
+        console.log("Slider is off");
+        // Perform actions for "off" state
+      }
+    });
+  </script>
+
+</html>
